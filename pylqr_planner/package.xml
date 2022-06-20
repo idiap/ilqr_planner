@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>pylqr_planner</name>
+  <version>0.0.0</version>
+  <description>The pylqr_planner package</description>
+
+  <maintainer email="jeremy.maceiras@idiap.ch">Jeremy Maceiras</maintainer>
+  <author email="jeremy.maceiras@idiap.ch">Jeremy Maceiras</author>
+  
+  <license>TODO</license>
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>ilqr_planner</depend>
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,7 @@
+[submodule "pylqr_planner/pybind11"]
+	path = pylqr_planner/pybind11
+	url = https://github.com/pybind/pybind11
+	branch = stable
+[submodule "ilqr_planner/ilqr_planner/lib/tinyurdfparser"]
+	path = ilqr_planner/ilqr_planner/lib/tinyurdfparser
+	url = https://github.com/idiap/tinyurdfparser.git

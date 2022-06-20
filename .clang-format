@@ -1,0 +1,6 @@
+BasedOnStyle: Chromium
+Standard: Cpp11
+SortIncludes: true
+ColumnLimit: 200
+IndentWidth: 4
+AccessModifierOffset: -4

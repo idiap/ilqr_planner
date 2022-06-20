@@ -1,0 +1,141 @@
+<diagram program="umletino" version="14.3.0"><zoom_level>10</zoom_level><element><id>UMLPackage</id><coordinates><x>130</x><y>50</y><w>900</w><h>540</h></coordinates><panel_attributes>sim</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLPackage</id><coordinates><x>1100</x><y>50</y><w>1300</w><h>1380</h></coordinates><panel_attributes>sys</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLPackage</id><coordinates><x>130</x><y>640</y><w>910</w><h>390</h></coordinates><panel_attributes>solver</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>160</x><y>90</y><w>360</w><h>370</h></coordinates><panel_attributes>/SimulationInterface/
+--
++ updateKinematics()=0: void
++ Jt(): Matrix
++ Jr(): Matrix
++ J(): Matrix
++ Jtp(): Matrix
++ Jrp(): Matrix
++ Jp(): Matrix
++ dQuatToDxJac(quat: vector): Matrix
++ sendAcc(dt: double, ddq: Vector, updateKin: bool): void
++ sendVel(dt: double, dq: Vector, updateKin: bool): void
++ getEEPosition(): Vector
++ getEEVelocity(): Vector
++ getEEAngVel(): Vector
++ getEEAngVelQuat(): Vector
++ getEEOrnQuat(): Vector
++ getJointsPos(): Vector
++ getJointsVel(): Vector 
++ getDOF(): int
++ getNbCarDim(): int
++ getTime(): int
++ setTime(time: double): void
++ setConfiguaration(q: Vector, dq:Vector, reset_time: bool): void</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>150</x><y>510</y><w>700</w><h>60</h></coordinates><panel_attributes>KDLRobot
+--
++ KDLRobot( urdf: string, baseFrame: string, tipFrame: string, q: Vector, dq: Vector, transform_rpy: Vector, transform_xyz: Vector)
++ updateKinematics(): void</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>320</x><y>450</y><w>210</w><h>60</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>20;10;10;40;190;40;190;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>640</x><y>90</y><w>370</w><h>230</h></coordinates><panel_attributes>TransformedSimulationInterface
+--
++ TransformedSimulationInterface(r: SimulationInterface, T: Matrix)
++ TransformedSimulationInterface(T: Matrix)
++ subscribe(r: SimulationInterface): void
++ updateKinematics(): void
++ J(): Matrix
++ Jp(): Matrix
++ getEEPosition(): Vector
++ getEEVelocity(): Vector
++ getEEAngVel(): Vector
++ getEEOrnQuat(): Vector
++ sendAcc(dt: double, ddq: Vector, updateKin: bool): void
++ sendVel(dt: double, dq: Vector, updateKin: bool): void
++ setTime(time: double): void
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>510</x><y>190</y><w>150</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;130;10</additional_attributes></element><element><id>Relation</id><coordinates><x>510</x><y>230</y><w>150</w><h>40</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;-&gt;
+r</panel_attributes><additional_attributes>130;20;10;20</additional_attributes></element><element><id>UMLClass</id><coordinates><x>700</x><y>360</y><w>260</w><h>80</h></coordinates><panel_attributes>Robot2D
+--
++ Robot2D( lengths: Vector, default_q: Vector)
++ fkine(q: Vector): Vector
++ fkine(): Vector</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>510</x><y>400</y><w>210</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;190;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1190</x><y>90</y><w>960</w><h>530</h></coordinates><panel_attributes>/System/
+--
++ System()
++ System(r: SimulationInterface, targets: Vector[], Qts: Matrix[], vpIndexes: int[], RtDiag: Vector, qMax: Vector, qMin: Vector, dqMax: Vector, dqMin: Vector, horizon: int, nbDeriv: int)
++ System(r: SimulationInterface, targets: Vector[], Qts: Matrix[], vpIndexes: int[], RtDiag: Vector, horizon: int, nbDeriv: int)
++ forwardPass(xk: Vector, uk: Vector, k: int): (Vector, Vector, Matrix, Matrix, Matrix)=0
++ fpBatch(u: SparseVector, Qdiag: SparseVector): (Vector,Vector,Vector,SparseMatrix[],(SparseMatrix, SparseMatrix, SparseMatrix, SparseMatrix)[])
++ diff(fx1: Vector, fx2: Vector): Vector
++ diffBatch(x: Vector, mu: SparseVector): Vector
++ init(): void
++ cost_F(xk: Vector): Vector
++ cost_F_x(xk: Vector): Vector
++ cost_F_xx(xk: Vector): Matrix
++ cost(xk: Vector, uk: Vector, k: int): Vector
++ cost_x(xk: Vector, uk: Vector, k: int): Vector
++ cost_u(xk: Vector, uk: Vector, k: int): Vector
++ cost_xx(xk: Vector, uk: Vector, k: int): Matrix
++ cost_uu(xk: Vector, uk: Vector, k: int): Matrix
++ cost_ux(xk: Vector, uk: Vector, k: int): Matrix
++ cost_xu(xk: Vector, uk: Vector, k: int): Matrix
++ getState()=0: Vector
++ getFxJac()=0: (Vector,Matrix)
++ getFxJac(xk: Vector): (Vector, Matrix)
++ getMuVector(): Vector
++ getQMatrix(): Matrix
++ getNbStateVar(): int
++ getNbCtrlVar(): int
++ getNbTargetVar(); int
++ getNbQVar(): int
++ getHorizon(): int
++ getNbDeriv(): int
++ setLimits( qMax: Vector, qMin: Vector, dqMax: Vector, dqMin: Vector): void
++ getInitState(): Vector
++ getInitFoxState(): Vector
++ reset()=0: void</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>510</x><y>0</y><w>700</w><h>360</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-&gt;
+r</panel_attributes><additional_attributes>680;340;560;340;560;20;70;20;70;180;10;180</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1190</x><y>640</y><w>1080</w><h>140</h></coordinates><panel_attributes>PosOrnPlanenrSys
+--
++ PosOrnPlanenrSys(r: SimulationInterface, targets: Vector[], Qts: Matrix[], vpIndexes: int[], RtDiag: Vector, qMax: Vector, qMin: Vector, dqMax: Vector, dqMin: Vector, horizon: int, nbDeriv: int, dt: double)
++ PosOrnPlanenrSys(r: SimulationInterface, targets: Vector[], Qts: Matrix[], vpIndexes: int[], RtDiag: Vector, horizon: int, nbDeriv: int, dt: double)
++ forwardPass(xk: Vector, uk: Vector, k: int): (Vector, Vector, Matrix, Matrix, Matrix)
++ getFxJac(): (Vector,Matrix)
++ diff(fx1: Vector, fx2: Vector): Vector
++ getState(): Vector
++ reset()=0: void</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1190</x><y>800</y><w>1080</w><h>170</h></coordinates><panel_attributes>PosOrnTimePlanenrSys
+--
++ PosOrnTimePlanenrSys(r: SimulationInterface, targets: Vector[], Qts: Matrix[], vpIndexes: int[], RtDiag: Vector, qMax: Vector, qMin: Vector, dqMax: Vector, dqMin: Vector, horizon: int, nbDeriv: int)
++ PosOrnTimePlanenrSys(r: SimulationInterface, targets: Vector[], Qts: Matrix[], vpIndexes: int[], RtDiag: Vector, horizon: int, nbDeriv: int)
++ forwardPass(xk: Vector, uk: Vector, k: int): (Vector, Vector, Matrix, Matrix, Matrix)
++ getFxJac(): (Vector,Matrix)
++ getFxJac(): (Vector,Matrix)
++ getFxJac(xk: Vector): (Vector,Matrix)
++ diff(fx1: Vector, fx2: Vector): Vector
++ getState(): Vector
++ reset()=0: void</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>2140</x><y>370</y><w>250</w><h>940</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;230;10;230;920;130;920</additional_attributes></element><element><id>Relation</id><coordinates><x>2260</x><y>700</y><w>130</w><h>30</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;110;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1190</x><y>990</y><w>1080</w><h>140</h></coordinates><panel_attributes>PositionPlannerSys
+--
++ PositionPlannerSys(r: SimulationInterface, targets: Vector[], Qts: Matrix[], vpIndexes: int[], RtDiag: Vector, qMax: Vector, qMin: Vector, dqMax: Vector, dqMin: Vector, horizon: int, nbDeriv: int, dt: double)
++ PositionPlannerSys(r: SimulationInterface, targets: Vector[], Qts: Matrix[], vpIndexes: int[], RtDiag: Vector, horizon: int, nbDeriv: int, dt: double)
++ forwardPass(xk: Vector, uk: Vector, k: int): (Vector, Vector, Matrix, Matrix, Matrix)
++ getFxJac(): (Vector,Matrix)
++ getState(): Vector
++ reset()=0: void</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>2260</x><y>880</y><w>130</w><h>30</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;110;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1190</x><y>1150</y><w>1080</w><h>260</h></coordinates><panel_attributes>SequentialSystem
+--
++ SequentialSystem(r: SimulationInterface, systems: System[], RtDiag: Vector, qMax: Vector, qMin: Vector, dqMax: Vector, dqMin: Vector, horizon: int, nbDeriv: int)
++ SequentialSystem(r: SimulationInterface, systems: System[], RtDiag: Vector, horizon: int, nbDeriv: int)
++ forwardPass(xk: Vector, uk: Vector, k: int): (Vector, Vector, Matrix, Matrix, Matrix)
++ getFxJac(): (Vector,Matrix)
++ diff(fx1: Vector, fx2: Vector): Vector
++ getState(): Vector
++ reset()=0: void
++ cost_F(xk: Vector): Vector
++ cost_F_x(xk: Vector): Vector
++ cost_F_xx(xk: Vector): Matrix
++ cost(xk: Vector, uk: Vector, k: int): Vector
++ cost_x(xk: Vector, uk: Vector, k: int): Vector
++ cost_xx(xk: Vector, uk: Vector, k: int): Matrix
++ getMuVector(): Vector
++ getQMatrix(): Matrix</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>2260</x><y>1050</y><w>130</w><h>30</h></coordinates><panel_attributes>lt=-</panel_attributes><additional_attributes>10;10;110;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1110</x><y>390</y><w>100</w><h>900</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-&gt;
+systems</panel_attributes><additional_attributes>80;880;20;880;10;10;80;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>160</x><y>930</y><w>100</w><h>80</h></coordinates><panel_attributes>&lt;&lt;struct&gt;&gt;
+Constraint
+--
++ A: Matrix
++ b: Vector</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>160</x><y>690</y><w>840</w><h>60</h></coordinates><panel_attributes>AL_ILQR
+--
++ AL_ILQR(s: System, inequality: Constraint[], initLambda: Vector[])
++ solve(U0: Vector[],  nb_iter. int, lag_update_step: int, penalty: double, scaling_factor: double, line_search: bool, cb: CallbackMessage): (Vector, Vector, Vector)
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>160</x><y>770</y><w>840</w><h>60</h></coordinates><panel_attributes>BatchSparseILQRCP
+--
++ BatchSparseILQRCP( s: System, mu: Vector, Q: Matrix, u0: Vector, RtDiag: Vector, psi: Matrix )
++ solve( nb_iter: int, Cb: CallBackMessage): Vector</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>160</x><y>850</y><w>840</w><h>60</h></coordinates><panel_attributes>BatchSparseILQR
+--
++ BatchSparseILQR( s: System, mu: Vector, Q: Matrix, u0: Vector, RtDiag: Vector)
++ solve( nb_iter: int, Cb: CallBackMessage): Vector</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>310</x><y>930</y><w>690</w><h>80</h></coordinates><panel_attributes>ILQRRecursive
+--
++ ILQRRecursive(s: System)
++ solve( U0: Vector, nb_iter: int, line_search: bool, cb: CallbackMessage)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1000</x><y>360</y><w>210</w><h>640</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-&gt;</panel_attributes><additional_attributes>10;620;70;620;70;10;190;10</additional_attributes></element><element><id>Relation</id><coordinates><x>990</x><y>880</y><w>100</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>10;10;80;10</additional_attributes></element><element><id>Relation</id><coordinates><x>990</x><y>790</y><w>100</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>10;10;80;10</additional_attributes></element><element><id>Relation</id><coordinates><x>990</x><y>720</y><w>100</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-</panel_attributes><additional_attributes>10;10;80;10</additional_attributes></element><element><id>Relation</id><coordinates><x>130</x><y>720</y><w>50</w><h>280</h></coordinates><panel_attributes>lt=&lt;.</panel_attributes><additional_attributes>30;260;10;260;10;10;30;10</additional_attributes></element></diagram>
