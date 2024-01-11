@@ -1,3 +1,11 @@
+<!--
+SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+
+SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # iLQR_planner package
 
 This package provides a C++ iLQR library that comes with its python bindings. It allows you to solve iLQR optimization problem on any robot as long as you provid an [URDF file](http://wiki.ros.org/urdf/Tutorials) describing the kinematics chain of the robot. For debugging purposes it also provide a 2D planar robots class that you can use. You can also apply a spatial transformation to compute robot task space information in the base frame of your choice (e.g. object frame).

@@ -1,29 +1,8 @@
-/**
-    This package provides a C++ iLQR library that comes with its python bindings.
-    It allows you to solve iLQR optimization problem on any robot as long as you
-    provide an [URDF file](http://wiki.ros.org/urdf/Tutorials) describing the
-    kinematics chain of the robot. For debugging purposes it also provide a 2D
-    planar robots class that you can use. You can also apply a spatial
-    transformation to compute robot task space information in the base frame of
-    your choice (e.g. object frame).
-
-    Copyright (c) 2022 Idiap Research Institute, http://www.idiap.ch/
-    Written by Jeremy Maceiras <jeremy.maceiras@idiap.ch>
-
-    This file is part of ilqr_planner.
-
-    ilqr_planner is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 3 as
-    published by the Free Software Foundation.
-
-    ilqr_planner is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with ilqr_planner. If not, see <http://www.gnu.org/licenses/>.
-*/
+// SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+//
+// SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+//
+// SPDX-License-Identifier: GPL-3.0-only
 
 #include "ilqr_planner/system/PosOrnTimePlannerSys.h"
 #include <cmath>
@@ -43,8 +22,8 @@ PosOrnTimePlannerSys::PosOrnTimePlannerSys(const std::shared_ptr<sim::Simulation
                                            const VectorXd& dqMax,
                                            const VectorXd& dqMin,
                                            int horizon,
-                                           int nbDeriv)
-    : System(r, keypoints, RtDiag, qMax, qMin, dqMax, dqMin, horizon, nbDeriv) {
+                                           int nb_deriv_)
+    : System(r, keypoints, RtDiag, qMax, qMin, dqMax, dqMin, horizon, nb_deriv_, {"POS_ORN_TIME"}) {
     localInit();
 }
 
@@ -54,8 +33,8 @@ PosOrnTimePlannerSys::PosOrnTimePlannerSys(const std::shared_ptr<sim::Simulation
                                            const VectorXd& qMax,
                                            const VectorXd& qMin,
                                            int horizon,
-                                           int nbDeriv)
-    : System(r, keypoints, RtDiag, qMax, qMin, horizon, nbDeriv) {
+                                           int nb_deriv_)
+    : System(r, keypoints, RtDiag, qMax, qMin, horizon, nb_deriv_, {"POS_ORN_TIME"}) {
     localInit();
 }
 
@@ -63,70 +42,66 @@ PosOrnTimePlannerSys::PosOrnTimePlannerSys(const std::shared_ptr<sim::Simulation
                                            const std::vector<std::shared_ptr<Keypoint>>& keypoints,
                                            const VectorXd& RtDiag,
                                            int horizon,
-                                           int nbDeriv)
-    : System(r, keypoints, RtDiag, horizon, nbDeriv) {
+                                           int nb_deriv_)
+    : System(r, keypoints, RtDiag, horizon, nb_deriv_, {"POS_ORN_TIME"}) {
     localInit();
 }
 
 void PosOrnTimePlannerSys::localInit() {
-    this->checkKeypoints(EXPECTED_KP_TAG);
+    q0_ = r->getJointsPos();
+    dq0_ = r->getJointsVel();
 
-    this->q0 = r->getJointsPos();
-    this->dq0 = r->getJointsVel();
-
-    int nbCarDim = this->r->getEEPosition().rows();
-
-    VectorXd f_x0(this->keypoints.at(0)->getState().rows());
-    VectorXd x0(nbDeriv * this->r->getDOF() + 1);
-    if (nbDeriv == 1) {
-        f_x0 << this->r->getEEPosition(), this->r->getEEOrnQuat(), 0;
-        x0 << q0, 0;
+    VectorXd f_x0(keypoints.at(0)->getState().rows());
+    VectorXd x0(nb_deriv_ * r->getDOF() + 1);
+    if (nb_deriv_ == 1) {
+        f_x0 << r->getEEPosition(), r->getEEOrnQuat(), 0;
+        x0 << q0_, 0;
     } else {
-        f_x0 << this->r->getEEPosition(), this->r->getEEOrnQuat(), this->r->getEEVelocity(), this->r->getEEAngVelQuat(), 0;
-        x0 << q0, dq0, 0;
+        f_x0 << r->getEEPosition(), r->getEEOrnQuat(), r->getEEVelocity(), r->getEEAngVelQuat(), 0;
+        x0 << q0_, dq0_, 0;
     }
 
-    this->f_x0 = f_x0;
-    this->x0 = x0;
+    f_x0_ = f_x0;
+    x0_ = x0;
 
-    this->nbStateVar = this->x0.rows();
-    this->nbCtrlVar = this->r->getDOF() + 1;
-    this->nbTargetVar = this->f_x0.rows();
-    this->nbQVar = this->nbTargetVar - this->nbDeriv;
+    nb_state_var_ = x0_.rows();
+    nb_ctrl_var_ = r->getDOF() + 1;
+    nb_target_var_ = f_x0_.rows();
+    nb_Q_var_ = nb_target_var_ - nb_deriv_;
 
-    VectorXd state_max_augmented = VectorXd::Zero(this->state_max.rows() + 1);
-    VectorXd state_min_augmented = VectorXd::Zero(this->state_min.rows() + 1);
-    VectorXi joint_limits_weight_augmented = VectorXi::Zero(this->state_min.rows() + 1);
+    VectorXd state_max_augmented = VectorXd::Zero(state_max_.rows() + 1);
+    VectorXd state_min_augmented = VectorXd::Zero(state_min_.rows() + 1);
+    VectorXi joint_limits_weight_augmented = VectorXi::Zero(state_min_.rows() + 1);
 
-    state_max_augmented << this->state_max, 0;
-    state_min_augmented << this->state_min, 0;
-    joint_limits_weight_augmented << joint_limits_weight, 0;
+    state_max_augmented << state_max_, 0;
+    state_min_augmented << state_min_, 0;
+    joint_limits_weight_augmented << joint_limits_weight_, 0;
 
-    this->state_max = state_max_augmented;
-    this->state_min = state_min_augmented;
-    this->joint_limits_weight = joint_limits_weight_augmented;
+    state_max_ = state_max_augmented;
+    state_min_ = state_min_augmented;
+    joint_limits_weight_ = joint_limits_weight_augmented;
 }
 
 std::tuple<VectorXd, MatrixXd> PosOrnTimePlannerSys::getFxJac() {
-    VectorXd xk = this->r->getEEPosition();
-    VectorXd et = this->r->getEEOrnQuat();
+    VectorXd xk = r->getEEPosition();
+    VectorXd et = r->getEEOrnQuat();
 
-    VectorXd fx = VectorXd::Zero(this->nbTargetVar);
+    VectorXd fx = VectorXd::Zero(nb_target_var_);
 
-    MatrixXd J = this->r->J();
+    MatrixXd J = r->J();
     MatrixXd Jk = MatrixXd::Zero(J.rows() + 1, J.cols() + 1);
 
     Jk.topLeftCorner(J.rows(), J.cols()) << J;
     Jk(Jk.rows() - 1, Jk.cols() - 1) = 1;
 
-    if (this->nbDeriv == 1) {
-        fx << xk, et, this->r->getTime();
+    if (nb_deriv_ == 1) {
+        fx << xk, et, r->getTime();
         return std::make_tuple(fx, Jk);
     }
 
-    VectorXd dxk = this->r->getEEVelocity();
-    VectorXd det = this->r->getEEAngVelQuat();
-    fx << xk, et, dxk, det, this->r->getTime();
+    VectorXd dxk = r->getEEVelocity();
+    VectorXd det = r->getEEAngVelQuat();
+    fx << xk, et, dxk, det, r->getTime();
 
     MatrixXd Js = MatrixXd ::Zero(2 * J.rows() + 1, 2 * J.cols() + 1);
 
@@ -137,71 +112,71 @@ std::tuple<VectorXd, MatrixXd> PosOrnTimePlannerSys::getFxJac() {
 }
 
 std::tuple<VectorXd, MatrixXd> PosOrnTimePlannerSys::getFxJac(VectorXd xk) {
-    VectorXd qk = xk.head(this->r->getDOF());
-    VectorXd dqk = VectorXd::Zero(this->r->getDOF());
+    VectorXd qk = xk.head(r->getDOF());
+    VectorXd dqk = VectorXd::Zero(r->getDOF());
 
     double t = xk(xk.rows() - 1);
 
-    if (this->nbDeriv == 2) {
-        dqk = xk.segment(this->r->getDOF(), this->r->getDOF());
+    if (nb_deriv_ == 2) {
+        dqk = xk.segment(r->getDOF(), r->getDOF());
     }
 
-    VectorXd old_q0 = this->r->getJointsPos();
-    VectorXd old_dq0 = this->r->getJointsVel();
-    double old_t = this->r->getTime();
+    VectorXd old_q0 = r->getJointsPos();
+    VectorXd old_dq0 = r->getJointsVel();
+    double old_t = r->getTime();
 
-    this->r->setConfiguration(qk, dqk);
-    this->r->setTime(t);
+    r->setConfiguration(qk, dqk);
+    r->setTime(t);
 
-    std::tuple<VectorXd, MatrixXd> fx_jac = this->getFxJac();
+    std::tuple<VectorXd, MatrixXd> fx_jac = getFxJac();
 
-    this->r->setConfiguration(old_q0, old_dq0);
-    this->r->setTime(old_t);
+    r->setConfiguration(old_q0, old_dq0);
+    r->setTime(old_t);
 
     return fx_jac;
 }
 
 VectorXd PosOrnTimePlannerSys::getState() {
-    VectorXd xk(this->nbStateVar);
-    if (this->nbDeriv == 1) {
-        xk << this->r->getJointsPos(), this->r->getTime();
+    VectorXd xk(nb_state_var_);
+    if (nb_deriv_ == 1) {
+        xk << r->getJointsPos(), r->getTime();
     } else {
-        xk << this->r->getJointsPos(), this->r->getJointsVel(), this->r->getTime();
+        xk << r->getJointsPos(), r->getJointsVel(), r->getTime();
     }
     return xk;
 }
 
 std::tuple<VectorXd, VectorXd, MatrixXd, MatrixXd, MatrixXd> PosOrnTimePlannerSys::forwardPass(const VectorXd& xk, const VectorXd& uk, int k) {
-    MatrixXd A = MatrixXd::Identity(this->nbStateVar, this->nbStateVar);
-    MatrixXd B = MatrixXd::Zero(this->nbStateVar, this->nbCtrlVar);
-    VectorXd x(this->nbStateVar);
+    MatrixXd A = MatrixXd::Identity(nb_state_var_, nb_state_var_);
+    MatrixXd B = MatrixXd::Zero(nb_state_var_, nb_ctrl_var_);
+    VectorXd x(nb_state_var_);
 
-    double dtSqrt = uk(this->nbCtrlVar - 1);
+    double dtSqrt = uk(nb_ctrl_var_ - 1);
     double dt = dtSqrt * dtSqrt;
 
-    if (this->nbDeriv == 1) {
-        VectorXd dq = uk.head(this->nbCtrlVar - 1);
-        this->r->sendVel(dt, dq);
+    if (nb_deriv_ == 1) {
+        VectorXd dq = uk.head(nb_ctrl_var_ - 1);
+        r->sendVel(dt, dq);
 
-        B.topRows(this->r->getDOF()) << MatrixXd::Identity(this->r->getDOF(), this->r->getDOF()) * dt, 2 * dtSqrt * dq;
+        B.topRows(r->getDOF()) << MatrixXd::Identity(r->getDOF(), r->getDOF()) * dt, 2 * dtSqrt * dq;
         B.bottomRightCorner(1, 1) << 2 * dtSqrt;
 
-        x << this->r->getJointsPos(), this->r->getTime();
+        x << r->getJointsPos(), r->getTime();
     } else {
-        VectorXd ddq = uk.head(this->nbCtrlVar - 1);
+        VectorXd ddq = uk.head(nb_ctrl_var_ - 1);
 
-        this->r->sendAcc(dt, ddq);
-        x << this->r->getJointsPos(), this->r->getJointsVel(), this->r->getTime();
+        r->sendAcc(dt, ddq);
+        x << r->getJointsPos(), r->getJointsVel(), r->getTime();
 
-        A.block(0, this->r->getDOF(), this->r->getDOF(), this->r->getDOF()) << dt * MatrixXd::Identity(this->r->getDOF(), this->r->getDOF());
+        A.block(0, r->getDOF(), r->getDOF(), r->getDOF()) << dt * MatrixXd::Identity(r->getDOF(), r->getDOF());
 
-        B.block(0, 0, this->r->getDOF(), this->r->getDOF()) << MatrixXd::Identity(this->r->getDOF(), this->r->getDOF()) * dt * dt / 2;
-        B.block(this->r->getDOF(), 0, this->r->getDOF(), this->r->getDOF()) = MatrixXd::Identity(this->r->getDOF(), this->r->getDOF()) * dt;
+        B.block(0, 0, r->getDOF(), r->getDOF()) << MatrixXd::Identity(r->getDOF(), r->getDOF()) * dt * dt / 2;
+        B.block(r->getDOF(), 0, r->getDOF(), r->getDOF()) = MatrixXd::Identity(r->getDOF(), r->getDOF()) * dt;
 
-        B.col(this->nbCtrlVar - 1) << 2 * dtSqrt * this->r->getJointsVel() + 2 * dtSqrt * dtSqrt * dtSqrt * ddq, 2 * dtSqrt * ddq, 2 * dtSqrt;
+        B.col(nb_ctrl_var_ - 1) << 2 * dtSqrt * r->getJointsVel() + 2 * dtSqrt * dtSqrt * dtSqrt * ddq, 2 * dtSqrt * ddq, 2 * dtSqrt;
     }
 
-    auto fxJ = this->getFxJac();
+    auto fxJ = getFxJac();
     auto fx = std::get<0>(fxJ);
     auto J = std::get<1>(fxJ);
 
@@ -209,7 +184,7 @@ std::tuple<VectorXd, VectorXd, MatrixXd, MatrixXd, MatrixXd> PosOrnTimePlannerSy
 }
 
 void PosOrnTimePlannerSys::reset() {
-    this->r->setConfiguration(this->q0, this->dq0);
+    r->setConfiguration(q0_, dq0_);
 }
 }  // namespace sys
 }  // namespace ilqr_planner

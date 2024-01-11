@@ -1,29 +1,8 @@
-/**
-    This package provides a C++ iLQR library that comes with its python bindings.
-    It allows you to solve iLQR optimization problem on any robot as long as you
-    provide an [URDF file](http://wiki.ros.org/urdf/Tutorials) describing the
-    kinematics chain of the robot. For debugging purposes it also provide a 2D
-    planar robots class that you can use. You can also apply a spatial
-    transformation to compute robot task space information in the base frame of
-    your choice (e.g. object frame).
-
-    Copyright (c) 2022 Idiap Research Institute, http://www.idiap.ch/
-    Written by Jeremy Maceiras <jeremy.maceiras@idiap.ch>
-
-    This file is part of ilqr_planner.
-
-    ilqr_planner is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 3 as
-    published by the Free Software Foundation.
-
-    ilqr_planner is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with ilqr_planner. If not, see <http://www.gnu.org/licenses/>.
-*/
+// SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+//
+// SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+//
+// SPDX-License-Identifier: GPL-3.0-only
 
 #include "ilqr_planner/solver/ILQRRecursive.h"
 #include <array>
@@ -39,11 +18,11 @@ namespace solver {
 
 ILQRRecursive::ILQRRecursive(const std::shared_ptr<sys::System>& s) : s(s) {}
 
-std::tuple<std::vector<VectorXd>, std::vector<VectorXd>, std::vector<VectorXd>, std::vector<MatrixXd>, std::vector<VectorXd>> ILQRRecursive::solve(const std::vector<VectorXd>& U0,
-                                                                                                                                                   int nb_iter,
-                                                                                                                                                   bool line_search,
-                                                                                                                                                   bool early_stop,
-                                                                                                                                                   CallBackMessage* cb) {
+std::tuple<std::vector<VectorXd>, std::vector<VectorXd>, std::vector<VectorXd>, std::vector<MatrixXd>, std::vector<VectorXd>, double> ILQRRecursive::solve(const std::vector<VectorXd>& U0,
+                                                                                                                                                           int nb_iter,
+                                                                                                                                                           bool line_search,
+                                                                                                                                                           bool early_stop,
+                                                                                                                                                           CallBackMessage* cb) {
     // Initialize X,loss from U
     s->reset();
     auto x0 = s->getInitState();
@@ -192,13 +171,13 @@ std::tuple<std::vector<VectorXd>, std::vector<VectorXd>, std::vector<VectorXd>, 
         else
             cb->notify(msg.str());
 
-        if (early_stop && alpha * sqrt(du_square_norm) < 1e-3) {
+        if (early_stop && alpha * sqrt(du_square_norm) < 1e-3 && cost0(0) < 1e-3) {
             break;
         }
     }
 
     s->reset();
-    return std::make_tuple(X, f_X, U, Ks, ds);
+    return std::make_tuple(X, f_X, U, Ks, ds, cost0(0));
 }
 }  // namespace solver
 }  // namespace ilqr_planner

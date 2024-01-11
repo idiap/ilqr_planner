@@ -1,4 +1,19 @@
+<!--
+SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+
+SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # CHANGELOG
+
+## V1.1.1 TO 2022-07-06
+
+* Added the possibility to create joint space tasks.
+  * ``AngularKeypoint`` or ``AngularTimeKeypoint`` can be used for keypoints.
+  * ``JointSpacePlannerSys`` or ``JointSpaceTimePlannerSys`` can be used as system.
+* Updated ``SequentialSystem`` to accept systems that does not share the same target space (as long as the state and control space are the same).
 
 ## V1.1.0 2022-06-02
 
@@ -9,7 +24,7 @@
 ### BREAKING
 
 * ``fpBatch`` , and ``forwardPassWithLimits`` does not return command constraints anymore (command constraints have been removed).
-* ``SequentialSystem`` does not take the joint limits as constructor parameters anymore. 
+* ``SequentialSystem`` does not take the joint limits as constructor parameters anymore.
 * Modified the way keypoints are handled by ``System`` object.
   * Instead of passing raw lists, now a list of ``Keypoint`` objects is required.
   * For this, implemented classes: ``Keypoint`` (abstract), ``PosOrnKeypoint`` for ``PosOrnPlannerSys`` , ``SpacetimeKeypoint`` for ``PosOrnTimePlannerSys``

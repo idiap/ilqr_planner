@@ -1,29 +1,8 @@
-/**
-    This package provides a C++ iLQR library that comes with its python bindings.
-    It allows you to solve iLQR optimization problem on any robot as long as you
-    provide an [URDF file](http://wiki.ros.org/urdf/Tutorials) describing the
-    kinematics chain of the robot. For debugging purposes it also provide a 2D
-    planar robots class that you can use. You can also apply a spatial
-    transformation to compute robot task space information in the base frame of
-    your choice (e.g. object frame).
-
-    Copyright (c) 2022 Idiap Research Institute, http://www.idiap.ch/
-    Written by Jeremy Maceiras <jeremy.maceiras@idiap.ch>
-
-    This file is part of ilqr_planner.
-
-    ilqr_planner is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 3 as
-    published by the Free Software Foundation.
-
-    ilqr_planner is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with ilqr_planner. If not, see <http://www.gnu.org/licenses/>.
-*/
+// SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+//
+// SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+//
+// SPDX-License-Identifier: GPL-3.0-only
 
 #include "ilqr_planner/system/SequentialSystem.h"
 namespace ilqr_planner {
@@ -32,131 +11,130 @@ namespace sys {
 using namespace Eigen;
 
 SequentialSystem::SequentialSystem(const std::shared_ptr<sim::SimulationInterface>& r, const std::vector<std::shared_ptr<System>>& systems, const VectorXd& RtDiag, int horizon, int nbDeriv)
-    : systems(systems) {
+    : systems_(systems) {
     this->r = r;
-    this->penalty = 0;
-    this->limitsSet = false;
+    penalty_ = 0;
+    limits_set_ = false;
     localInit(RtDiag);
 }
 
 void SequentialSystem::localInit(const VectorXd& RtDiag) {
-    this->R = RtDiag.asDiagonal();
+    R = RtDiag.asDiagonal();
 
-    int nbStateVar0 = this->systems.at(0)->getNbStateVar();
-    int nbTargetVar0 = this->systems.at(0)->getNbTargetVar();
-    int nbCtrlVar0 = this->systems.at(0)->getNbCtrlVar();
-    int horizon0 = this->systems.at(0)->getHorizon();
-    int nbDeriv0 = this->systems.at(0)->getNbDeriv();
-    int nbQVar0 = this->systems.at(0)->getNbQVar();
+    int nb_state_var_0 = systems_.at(0)->getNbStateVar();
+    int nb_ctrl_var_0 = systems_.at(0)->getNbCtrlVar();
+    int horizon0 = systems_.at(0)->getHorizon();
+    int nbDeriv0 = systems_.at(0)->getNbDeriv();
 
-    VectorXd initState0 = this->systems.at(0)->getInitState();
+    VectorXd initState0 = systems_.at(0)->getInitState();
 
-    for (int i = 1; i < this->systems.size(); i++) {
-        auto system = this->systems.at(i);
+    int nb_target_var = systems_.at(0)->getNbTargetVar();
+    int nb_Q_var = systems_.at(0)->getNbQVar();
 
-        if (nbStateVar0 != system->getNbStateVar()) {
-            std::runtime_error(" All the systems does not have the same number of state variable ");
+    for (int i = 1; i < systems_.size(); i++) {
+        auto system = systems_.at(i);
+        nb_target_var += system->getNbTargetVar();
+        nb_Q_var += system->getNbQVar();
+
+        if (nb_state_var_0 != system->getNbStateVar()) {
+            throw std::runtime_error(" All the systems does not have the same number of state variable ");
         }
 
-        if (nbTargetVar0 != system->getNbTargetVar()) {
-            std::runtime_error(" All the systems does not have the same number of target variable ");
-        }
-
-        if (nbCtrlVar0 != system->getNbCtrlVar()) {
-            std::runtime_error(" All the systems does not have the same number of control variable ");
+        if (nb_ctrl_var_0 != system->getNbCtrlVar()) {
+            throw std::runtime_error(" All the systems does not have the same number of control variable ");
         }
 
         if (horizon0 != system->getHorizon()) {
-            std::runtime_error(" All the systems does not have the same horizon ");
+            throw std::runtime_error(" All the systems does not have the same horizon ");
         }
 
         if (nbDeriv0 != system->getNbDeriv()) {
-            std::runtime_error(" All the systems does not have the same number of derivatives ");
-        }
-
-        if (nbQVar0 != system->getNbQVar()) {
-            std::runtime_error(" All the systems does not have the same number of precision variables ");
+            throw std::runtime_error(" All the systems does not have the same number of derivatives ");
         }
 
         if (initState0 != system->getInitState()) {
-            std::runtime_error(" All the systems does not have the same initState ");
+            throw std::runtime_error(" All the systems does not have the same initState ");
         }
     }
 
-    this->nbStateVar = nbStateVar0;
-    this->nbTargetVar = nbTargetVar0 * this->systems.size();
-    this->nbCtrlVar = nbCtrlVar0;
-    this->nbQVar = nbQVar0 * this->systems.size();
-    this->horizon = horizon0;
-    this->nbDeriv = nbDeriv0;
-    this->x0 = initState0;
-    this->q0 = this->r->getJointsPos();
-    this->dq0 = this->r->getJointsVel();
-    this->f_x0 = std::get<0>(this->getFxJac());
+    nb_state_var_ = nb_state_var_0;
+    nb_target_var_ = nb_target_var;
+    nb_ctrl_var_ = nb_ctrl_var_0;
+    nb_Q_var_ = nb_Q_var;
+    horizon_ = horizon0;
+    nb_deriv_ = nbDeriv0;
+    x0_ = initState0;
+    q0_ = r->getJointsPos();
+    dq0_ = r->getJointsVel();
+    f_x0_ = std::get<0>(getFxJac());
 
-    for (auto sys : this->systems) {
+    for (auto sys : systems_) {
         keypoints.insert(keypoints.end(), sys->keypoints.begin(), sys->keypoints.end());
     }
 
-    this->init();
+    init();
 }
 
 std::tuple<VectorXd, VectorXd, MatrixXd, MatrixXd, MatrixXd> SequentialSystem::forwardPass(const VectorXd& xk, const VectorXd& uk, int k) {
-    auto xFxABJ = this->systems.at(0)->forwardPass(xk, uk, k);
+    auto xFxABJ = systems_.at(0)->forwardPass(xk, uk, k);
 
-    for (int i = 1; i < this->systems.size(); i++) {
-        this->systems.at(i)->r->updateKinematics();
+    for (int i = 1; i < systems_.size(); i++) {
+        systems_.at(i)->r->updateKinematics();
     }
 
     VectorXd x = std::get<0>(xFxABJ);
     MatrixXd A = std::get<2>(xFxABJ);
     MatrixXd B = std::get<3>(xFxABJ);
-    auto fxJ = this->getFxJac();
+    auto fxJ = getFxJac();
 
     return std::make_tuple(x, std::get<0>(fxJ), A, B, std::get<1>(fxJ));
 }
 
 std::tuple<VectorXd, MatrixXd> SequentialSystem::getFxJac() {
-    VectorXd fx = VectorXd::Zero(this->nbTargetVar);
-    MatrixXd J = MatrixXd::Zero(this->nbQVar, this->nbStateVar);
+    VectorXd fx = VectorXd::Zero(nb_target_var_);
+    MatrixXd J = MatrixXd::Zero(nb_Q_var_, nb_state_var_);
 
-    int i = 0;
-    for (auto sys : this->systems) {
+    int fx_idx = 0;
+    int J_idx = 0;
+
+    for (auto sys : systems_) {
         auto fxJ_k = sys->getFxJac();
         VectorXd fxk = std::get<0>(fxJ_k);
         MatrixXd Jk = std::get<1>(fxJ_k);
 
-        fx.segment(i * fxk.rows(), fxk.rows()) = fxk;
-        J.block(i * Jk.rows(), 0, Jk.rows(), Jk.cols()) = Jk;
-        i += 1;
+        fx.segment(fx_idx, fxk.rows()) = fxk;
+        J.block(J_idx, 0, Jk.rows(), Jk.cols()) = Jk;
+
+        fx_idx += fxk.rows();
+        J_idx += Jk.rows();
     }
 
     return std::make_tuple(fx, J);
 }
 
 VectorXd SequentialSystem::getState() {
-    return this->systems.at(0)->getState();
+    return systems_.at(0)->getState();
 }
 
 VectorXd SequentialSystem::cost_F(const VectorXd& xk) {
     VectorXd c = VectorXd::Zero(1);
-    for (auto sys : this->systems) {
+    for (auto sys : systems_) {
         c += sys->cost_F(xk);
     }
     return c;
 }
 
 VectorXd SequentialSystem::cost_F_x(const VectorXd& xk) {
-    VectorXd c = VectorXd::Zero(this->nbStateVar);
-    for (auto sys : this->systems) {
+    VectorXd c = VectorXd::Zero(nb_state_var_);
+    for (auto sys : systems_) {
         c += sys->cost_F_x(xk);
     }
     return c;
 }
 
 MatrixXd SequentialSystem::cost_F_xx(const VectorXd& xk) {
-    MatrixXd c = MatrixXd::Zero(this->nbStateVar, this->nbStateVar);
-    for (auto sys : this->systems) {
+    MatrixXd c = MatrixXd::Zero(nb_state_var_, nb_state_var_);
+    for (auto sys : systems_) {
         c += sys->cost_F_xx(xk);
     }
     return c;
@@ -164,38 +142,42 @@ MatrixXd SequentialSystem::cost_F_xx(const VectorXd& xk) {
 
 VectorXd SequentialSystem::cost(const VectorXd& xk, const VectorXd& uk, int k) {
     VectorXd c = VectorXd::Zero(1);
-    for (auto sys : this->systems) {
+    for (auto sys : systems_) {
         c += sys->cost(xk, uk, k);
     }
     return c;
 }
 
 VectorXd SequentialSystem::cost_x(const VectorXd& xk, const VectorXd& uk, int k) {
-    VectorXd c = VectorXd::Zero(this->nbStateVar);
-    for (auto sys : this->systems) {
+    VectorXd c = VectorXd::Zero(nb_state_var_);
+    for (auto sys : systems_) {
         c += sys->cost_x(xk, uk, k);
     }
     return c;
 }
 
 MatrixXd SequentialSystem::cost_xx(const VectorXd& xk, const VectorXd& uk, int k) {
-    MatrixXd c = MatrixXd::Zero(this->nbStateVar, this->nbStateVar);
-    for (auto sys : this->systems) {
+    MatrixXd c = MatrixXd::Zero(nb_state_var_, nb_state_var_);
+    for (auto sys : systems_) {
         c += sys->cost_xx(xk, uk, k);
     }
     return c;
 }
 
 VectorXd SequentialSystem::diff(const VectorXd& state, int k) {
-    VectorXd diff = VectorXd::Zero(this->nbQVar);
+    VectorXd diff = VectorXd::Zero(nb_Q_var_);
 
-    int i = 0;
-    int nbTargetVar_k = this->nbTargetVar / this->systems.size();
-    int nbQVar_k = this->nbQVar / this->systems.size();
+    int Q_idx = 0;
+    int target_idx = 0;
 
-    for (auto sys : this->systems) {
-        diff.segment(i * nbQVar_k, nbQVar_k) = sys->diff(state.segment(i * nbTargetVar_k, nbTargetVar_k), k);
-        i += 1;
+    for (auto sys : systems_) {
+        int nb_target_var = sys->getNbTargetVar();
+        int nb_Q_var = sys->getNbQVar();
+
+        diff.segment(Q_idx, nb_Q_var) = sys->diff(state.segment(target_idx, nb_target_var), k);
+
+        Q_idx += nb_Q_var;
+        target_idx += nb_target_var;
     }
 
     return diff;
@@ -203,39 +185,41 @@ VectorXd SequentialSystem::diff(const VectorXd& state, int k) {
 
 VectorXd SequentialSystem::getMuVector(bool sparse) {
     if (!sparse) {
-        VectorXd mu = VectorXd::Zero(this->horizon * this->nbTargetVar);
-        int i = 0;
-        for (auto sys : this->systems) {
+        VectorXd mu = VectorXd::Zero(horizon_ * nb_target_var_);
+        int idx = 0;
+        for (auto sys : systems_) {
             VectorXd mu_k = sys->getMuVector();
-            int nbTargetVar_k = sys->getNbTargetVar();
+            int nb_target_var_k = sys->getNbTargetVar();
 
-            for (int j = 0; j < this->horizon; j++) {
-                VectorXd mu_k_t = mu_k.segment(j * nbTargetVar_k, nbTargetVar_k);
-                mu.segment(j * this->nbTargetVar, this->nbTargetVar).segment(i * nbTargetVar_k, nbTargetVar_k) = mu_k_t;
+            for (int j = 0; j < horizon_; j++) {
+                VectorXd mu_k_t = mu_k.segment(j * nb_target_var_k, nb_target_var_k);
+                mu.segment(j * nb_target_var_, nb_target_var_).segment(idx, nb_target_var_k) = mu_k_t;
             }
 
-            i += 1;
+            idx += nb_target_var_k;
         }
 
         return mu;
     } else {
-        VectorXd mu = VectorXd::Zero(this->nbTargetVar * this->keypoints.size());
+        VectorXd mu = VectorXd::Zero(nb_target_var_ * keypoints.size());
 
-        for (int i = 0; i < this->keypoints.size(); i++) {
-            VectorXd mu_t = VectorXd::Zero(this->nbTargetVar);
+        for (int i = 0; i < keypoints.size(); i++) {
+            VectorXd mu_t = VectorXd::Zero(nb_target_var_);
+            int idx = 0;
 
-            for (int j = 0; j < this->systems.size(); j++) {
-                auto kp = this->systems.at(j)->getKeypoint(this->keypoints.at(i)->getTimestep());
-                VectorXd mu_t_j = VectorXd::Zero(this->systems.at(j)->getNbTargetVar());
+            for (int j = 0; j < systems_.size(); j++) {
+                auto kp = systems_.at(j)->getKeypoint(keypoints.at(i)->getTimestep());
+                VectorXd mu_t_j = VectorXd::Zero(systems_.at(j)->getNbTargetVar());
 
                 if (kp != nullptr) {
                     mu_t_j = kp->getState();
                 }
 
-                mu_t.segment(j * this->systems.at(j)->getNbTargetVar(), this->systems.at(j)->getNbTargetVar()) = mu_t_j;
+                mu_t.segment(idx, mu_t_j.rows()) = mu_t_j;
+                idx += mu_t_j.rows();
             }
 
-            mu.segment(i * this->nbTargetVar, this->nbTargetVar) = mu_t;
+            mu.segment(i * nb_target_var_, nb_target_var_) = mu_t;
         }
 
         return mu;
@@ -248,39 +232,39 @@ MatrixXd SequentialSystem::getQMatrix(bool sparse) {
     // To do this, we need to change the algorithm and make it way more costly.
 
     if (!sparse) {
-        MatrixXd Q = MatrixXd::Zero(this->horizon * this->nbQVar, this->horizon * this->nbQVar);
+        MatrixXd Q = MatrixXd::Zero(horizon_ * nb_Q_var_, horizon_ * nb_Q_var_);
 
-        int i = 0;
-        for (auto sys : this->systems) {
+        int idx = 0;
+        for (auto sys : systems_) {
             MatrixXd Q_k = sys->getQMatrix();
-            int nbQVar_k = sys->getNbQVar();
+            int nb_Q_var_k = sys->getNbQVar();
 
-            for (int j = 0; j < this->horizon; j++) {
-                MatrixXd Q_k_t = Q_k.block(j * nbQVar_k, j * nbQVar_k, nbQVar_k, nbQVar_k);
-                Q.block(j * this->nbQVar, j * this->nbQVar, this->nbQVar, this->nbQVar).block(i * nbQVar_k, i * nbQVar_k, nbQVar_k, nbQVar_k) = Q_k_t;
+            for (int j = 0; j < horizon_; j++) {
+                MatrixXd Q_k_t = Q_k.block(j * nb_Q_var_k, j * nb_Q_var_k, nb_Q_var_k, nb_Q_var_k);
+                Q.block(j * nb_Q_var_, j * nb_Q_var_, nb_Q_var_, nb_Q_var_).block(idx, idx, nb_Q_var_k, nb_Q_var_k) = Q_k_t;
             }
-
-            i += 1;
+            idx += nb_Q_var_k;
         }
 
         return Q;
     } else {
-        MatrixXd Q = MatrixXd::Zero(this->nbQVar * this->keypoints.size(), this->nbQVar * this->keypoints.size());
+        MatrixXd Q = MatrixXd::Zero(nb_Q_var_ * keypoints.size(), nb_Q_var_ * keypoints.size());
 
-        for (int i = 0; i < this->keypoints.size(); i++) {
-            MatrixXd Q_t = MatrixXd::Zero(this->nbQVar, this->nbQVar);
-
-            for (int j = 0; j < this->systems.size(); j++) {
-                auto kp = this->systems.at(j)->getKeypoint(this->keypoints.at(i)->getTimestep());
-                MatrixXd Q_t_j = MatrixXd::Zero(this->systems.at(j)->getNbQVar(), this->systems.at(j)->getNbQVar());
+        for (int i = 0; i < keypoints.size(); i++) {
+            MatrixXd Q_t = MatrixXd::Zero(nb_Q_var_, nb_Q_var_);
+            int idx = 0;
+            for (int j = 0; j < systems_.size(); j++) {
+                auto kp = systems_.at(j)->getKeypoint(keypoints.at(i)->getTimestep());
+                MatrixXd Q_t_j = MatrixXd::Zero(systems_.at(j)->getNbQVar(), systems_.at(j)->getNbQVar());
 
                 if (kp != nullptr) {
                     Q_t_j = kp->getPrecision();
                 }
-                Q_t.block(j * this->systems.at(j)->getNbQVar(), j * this->systems.at(j)->getNbQVar(), this->systems.at(j)->getNbQVar(), this->systems.at(j)->getNbQVar()) = Q_t_j;
+                Q_t.block(idx, idx, systems_.at(j)->getNbQVar(), systems_.at(j)->getNbQVar()) = Q_t_j;
+                idx += systems_.at(j)->getNbQVar();
             }
 
-            Q.block(i * this->nbQVar, i * this->nbQVar, this->nbQVar, this->nbQVar) = Q_t;
+            Q.block(i * nb_Q_var_, i * nb_Q_var_, nb_Q_var_, nb_Q_var_) = Q_t;
         }
 
         return Q;
@@ -288,7 +272,7 @@ MatrixXd SequentialSystem::getQMatrix(bool sparse) {
 }
 
 void SequentialSystem::reset() {
-    for (auto sys : this->systems) {
+    for (auto sys : systems_) {
         sys->reset();
     }
 }

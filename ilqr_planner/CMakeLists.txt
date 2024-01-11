@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-only
+
 cmake_minimum_required(VERSION 3.5)
 
 find_program(CCACHE_PROGRAM ccache)
@@ -67,13 +73,12 @@ configure_file(cmake/${PROJECT_NAME}-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/$
 configure_file(cmake/${PROJECT_NAME}-packages.cmake "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-packages.cmake")
 
 install(
-  FILES 
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake" 
+  FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-packages.cmake"
-  DESTINATION 
+  DESTINATION
     ${${PROJECT_NAME}_PREFIX_PACKAGE}
-  COMPONENT 
+  COMPONENT
     Devel
 )
-

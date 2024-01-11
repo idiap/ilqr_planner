@@ -1,3 +1,9 @@
+REM SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+REM
+REM SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+REM
+REM SPDX-License-Identifier: GPL-3.0-only
+
 @ECHO OFF
 
 pushd %~dp0

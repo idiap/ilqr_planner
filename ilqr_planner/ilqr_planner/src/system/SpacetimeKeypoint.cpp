@@ -1,29 +1,8 @@
-/**
-    This package provides a C++ iLQR library that comes with its python bindings.
-    It allows you to solve iLQR optimization problem on any robot as long as you
-    provide an [URDF file](http://wiki.ros.org/urdf/Tutorials) describing the
-    kinematics chain of the robot. For debugging purposes it also provide a 2D
-    planar robots class that you can use. You can also apply a spatial
-    transformation to compute robot task space information in the base frame of
-    your choice (e.g. object frame).
-
-    Copyright (c) 2022 Idiap Research Institute, http://www.idiap.ch/
-    Written by Jeremy Maceiras <jeremy.maceiras@idiap.ch>
-
-    This file is part of ilqr_planner.
-
-    ilqr_planner is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 3 as
-    published by the Free Software Foundation.
-
-    ilqr_planner is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with ilqr_planner. If not, see <http://www.gnu.org/licenses/>.
-*/
+// SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+//
+// SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+//
+// SPDX-License-Identifier: GPL-3.0-only
 
 #include "ilqr_planner/system/SpacetimeKeypoint.h"
 

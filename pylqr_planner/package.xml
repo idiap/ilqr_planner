@@ -1,4 +1,11 @@
-<?xml version="1.0"?>
+<!--
+SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+
+SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 <package format="2">
   <name>pylqr_planner</name>
   <version>0.0.0</version>
@@ -6,7 +13,7 @@
 
   <maintainer email="jeremy.maceiras@idiap.ch">Jeremy Maceiras</maintainer>
   <author email="jeremy.maceiras@idiap.ch">Jeremy Maceiras</author>
-  
+
   <license>TODO</license>
   <buildtool_depend>catkin</buildtool_depend>
 

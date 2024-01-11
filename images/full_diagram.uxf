@@ -16,7 +16,7 @@
 + getEEAngVelQuat(): Vector
 + getEEOrnQuat(): Vector
 + getJointsPos(): Vector
-+ getJointsVel(): Vector 
++ getJointsVel(): Vector
 + getDOF(): int
 + getNbCarDim(): int
 + getTime(): int

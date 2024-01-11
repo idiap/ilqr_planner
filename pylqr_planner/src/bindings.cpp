@@ -1,29 +1,8 @@
-/**
-    This package provides a C++ iLQR library that comes with its python bindings.
-    It allows you to solve iLQR optimization problem on any robot as long as you
-    provide an [URDF file](http://wiki.ros.org/urdf/Tutorials) describing the
-    kinematics chain of the robot. For debugging purposes it also provide a 2D
-    planar robots class that you can use. You can also apply a spatial
-    transformation to compute robot task space information in the base frame of
-    your choice (e.g. object frame).
-
-    Copyright (c) 2022 Idiap Research Institute, http://www.idiap.ch/
-    Written by Jeremy Maceiras <jeremy.maceiras@idiap.ch>
-
-    This file is part of ilqr_planner.
-
-    ilqr_planner is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 3 as
-    published by the Free Software Foundation.
-
-    ilqr_planner is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with ilqr_planner. If not, see <http://www.gnu.org/licenses/>.
-*/
+// SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+//
+// SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+//
+// SPDX-License-Identifier: GPL-3.0-only
 
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
@@ -37,13 +16,18 @@
 #include <ilqr_planner/sim/SimulationInterface.h>
 #include <ilqr_planner/sim/TransformedSimulationInterface.h>
 
+#include <ilqr_planner/system/JointSpacePlannerSys.h>
+#include <ilqr_planner/system/JointSpaceTimePlannerSys.h>
 #include <ilqr_planner/system/PosOrnPlannerSys.h>
 #include <ilqr_planner/system/PosOrnTimePlannerSys.h>
 #include <ilqr_planner/system/SequentialSystem.h>
 #include <ilqr_planner/system/System.h>
 
+#include <ilqr_planner/system/AngularKeypoint.h>
+#include <ilqr_planner/system/AngularTimeKeypoint.h>
 #include <ilqr_planner/system/Keypoint.h>
 #include <ilqr_planner/system/PosOrnKeypoint.h>
+#include <ilqr_planner/system/PosOrnKeypointDistFunct.h>
 #include <ilqr_planner/system/SpacetimeKeypoint.h>
 
 #include <ilqr_planner/solver/AL-ILQR.h>
@@ -73,9 +57,9 @@ PYBIND11_MODULE(PyLQR, m) {
 
             sim
             system
-            solver 
+            solver
             utils
-            
+
     )moddoc";
 
     py::module m_sim = m.def_submodule("sim");
@@ -91,7 +75,7 @@ PYBIND11_MODULE(PyLQR, m) {
 
         .. autoclass:: Robot2D
             :members:
-        
+
         .. autoclass:: KDLRobot
             :members:
 
@@ -140,7 +124,7 @@ PYBIND11_MODULE(PyLQR, m) {
 
             :param reset_time: If true, time will be set to zero
             :type reset_time: bool
-            
+
         )methdoc")
 
         // Robot control
@@ -173,10 +157,12 @@ PYBIND11_MODULE(PyLQR, m) {
             )classdoc";
 
     py::class_<sim::KDLRobot, sim::SimulationInterface, std::shared_ptr<sim::KDLRobot>>(m_sim, "KDLRobot")
-        .def(py::init<const std::string&, const std::string&, const std::string&, const Eigen::VectorXd&, const Eigen::VectorXd&>(), py::arg("udf"), py::arg("baseFrame"), py::arg("tipFrame"),
+        .def(py::init<const std::string&, const std::string&, const std::string&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&, const bool&>(),
+             py::arg("urdf"), py::arg("base_frame"), py::arg("tip_frame"), py::arg("q"), py::arg("dq"), py::arg("transform_rpy"), py::arg("transform_xyz"), py::arg("is_path"))
+        .def(py::init<const std::string&, const std::string&, const std::string&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&>(), py::arg("urdf"),
+             py::arg("base_frame"), py::arg("tip_frame"), py::arg("q"), py::arg("dq"), py::arg("transform_rpy"), py::arg("transform_xyz"))
+        .def(py::init<const std::string&, const std::string&, const std::string&, const Eigen::VectorXd&, const Eigen::VectorXd&>(), py::arg("urdf"), py::arg("base_frame"), py::arg("tip_frame"),
              py::arg("q"), py::arg("dq"))
-        .def(py::init<const std::string&, const std::string&, const std::string&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&>(), py::arg("udf"),
-             py::arg("baseFrame"), py::arg("tipFrame"), py::arg("q"), py::arg("dq"), py::arg("transform_rpy"), py::arg("transform_xyz"))
         .doc() = R"classdoc(
             A class abstracting a robot with the orocos-kdl library.
 
@@ -200,7 +186,7 @@ PYBIND11_MODULE(PyLQR, m) {
 
             :param transform_xyz: Custom end-effector transform (Optional)(x,y,z)
             :type transform_xyz: numpy array
-            
+
             )classdoc";
 
     py::class_<sim::Robot2D, sim::SimulationInterface, std::shared_ptr<sim::Robot2D>>(m_sim, "Robot2D")
@@ -240,7 +226,13 @@ PYBIND11_MODULE(PyLQR, m) {
 
         .. autoclass:: System
             :members:
-        
+
+        .. autoclass:: JointSpacePlannerSys
+            :members:
+
+        .. autoclass:: JointSpaceTimePlannerSys
+            :members:
+
         .. autoclass:: PosOrnPlannerSys
             :members:
 
@@ -249,11 +241,20 @@ PYBIND11_MODULE(PyLQR, m) {
 
         .. autoclass:: Keypoint
             :members:
-        
+
         .. autoclass:: PosOrnKeypoint
             :members:
-        
+
+        .. autoclass:: PosOrnKeypointDistFunct
+            :members:
+
         .. autoclass:: SpacetimeKeypoint
+            :members:
+
+        .. autoclass:: AngularKeypoint
+            :members:
+
+        .. autoclass:: AngularTimeKeypoint
             :members:
 
     )moddoc";
@@ -298,6 +299,40 @@ PYBIND11_MODULE(PyLQR, m) {
 
         )classdoc";
 
+    py::class_<sys::PosOrnKeypointDistFunct, sys::Keypoint, std::shared_ptr<sys::PosOrnKeypointDistFunct>>(m_sys, "PosOrnKeypointDistFunct")
+        .def(py::init<const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::MatrixXd&, const double&, const Eigen::Vector3d&, const int&>(), py::arg("position"), py::arg("orientation"),
+             py::arg("precision"), py::arg("pos_thresh"), py::arg("orn_thresh"), py::arg("timestep"))
+        .def(py::init<const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::MatrixXd&, const double&, const Eigen::Vector3d&, const int&>(),
+             py::arg("position"), py::arg("dposition"), py::arg("orientation"), py::arg("dorientation"), py::arg("precision"), py::arg("pos_thresh"), py::arg("orn_thresh"), py::arg("timestep"))
+        .doc() = R"classdoc(
+            This class inherits from Keypoint and represent a keypoint expressend in position and in orientation
+
+            :param position: Keypoint's position
+            :type position: numpy array
+
+            :param dposition: Keypoint's linear velocity, if specified  dorientation needs to be specified too.
+            :type dposition: numpy array
+
+            :param orientation: Keypoint'orientation in quaternion (w,x,y,z)
+            :type orientation: numpy array
+
+            :param dorientation: Keypoint's angular velocity expressed in quaternion velocity (dw,dx,dy,dz), if specified  dorientation needs to be specified too.
+            :type dorientation: numpy array
+
+            :param precision: Keypoint's precision matrix
+            :type precision: numpy 2D array
+
+            :param pos_thresh: Position sphere compliance radius.
+            :type pos_thresh: double
+
+            :param orn_thresh: Orientation bonding box compliance expressed in the tangent space.
+            :type orn_thresh: numpy array
+
+            :param timestep: Keypoint's discrete time of occurence
+            :type timestep:  int
+
+        )classdoc";
+
     py::class_<sys::SpacetimeKeypoint, sys::PosOrnKeypoint, sys::Keypoint, std::shared_ptr<sys::SpacetimeKeypoint>>(m_sys, "SpacetimeKeypoint")
         .def(py::init<const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::MatrixXd&, const double&, const int&>(), py::arg("position"), py::arg("orientation"), py::arg("precision"),
              py::arg("continuous_time"), py::arg("timestep"))
@@ -318,6 +353,51 @@ PYBIND11_MODULE(PyLQR, m) {
 
             :param dorientation: Keypoint's angular velocity expressed in quaternion velocity (dw,dx,dy,dz), if specified  dorientation needs to be specified too.
             :type dorientation: numpy array
+
+            :param precision: Keypoint's precision matrix
+            :type precision: numpy 2D array
+
+            :param continuous_time: Keypoint's continuous time of occurence
+            :type continuous_time: double
+
+            :param timestep: Keypoint's discrete time of occurence
+            :type timestep:  int
+
+        )classdoc";
+
+    py::class_<sys::AngularKeypoint, sys::Keypoint, std::shared_ptr<sys::AngularKeypoint>>(m_sys, "AngularKeypoint")
+        .def(py::init<const Eigen::VectorXd&, const Eigen::MatrixXd&, const int&>(), py::arg("position"), py::arg("precision"), py::arg("timestep"))
+        .def(py::init<const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::MatrixXd&, const int&>(), py::arg("position"), py::arg("dposition"), py::arg("precision"), py::arg("timestep"))
+        .def("get_position", &sys::AngularKeypoint::getPosition, "Return keypoint's position")
+        .doc() = R"classdoc(
+            This class inherits from Keypoint and represent a keypoint expressend in joint space
+            :param position: Keypoint's position
+            :type position: numpy array
+
+            :param dposition: Keypoint's velocity,optional
+            :type dposition: numpy array
+
+            :param precision: Keypoint's precision matrix
+            :type precision: numpy 2D array
+
+            :param timestep: Keypoint's discrete time of occurence
+            :type timestep:  int
+
+        )classdoc";
+
+    py::class_<sys::AngularTimeKeypoint, sys::AngularKeypoint, sys::Keypoint, std::shared_ptr<sys::AngularTimeKeypoint>>(m_sys, "AngularTimeKeypoint")
+        .def(py::init<const Eigen::VectorXd&, const Eigen::MatrixXd&, const double&, const int&>(), py::arg("position"), py::arg("precision"), py::arg("continuous_time"), py::arg("timestep"))
+        .def(py::init<const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::MatrixXd&, const double&, const int&>(), py::arg("position"), py::arg("dposition"), py::arg("precision"),
+             py::arg("continuous_time"), py::arg("timestep"))
+        .def("get_continuous_time", &sys::AngularTimeKeypoint::getContinuousTime, "Return keypoint's continuous time of occurence")
+        .doc() = R"classdoc(
+            This class inherits from AngularKeypoint and represent a keypoint expressend in position and time
+
+            :param position: Keypoint's position
+            :type position: numpy array
+
+            :param dposition: Keypoint's velocity, optional.
+            :type dposition: numpy array
 
             :param precision: Keypoint's precision matrix
             :type precision: numpy 2D array
@@ -361,13 +441,13 @@ PYBIND11_MODULE(PyLQR, m) {
             Perform the forward pass with respect to the joint & command limits
 
             :return: A tuple containing xkp1 (next state) , fxkp1 (next f(x) state), q (joint state violation), A (dxkp1/dxk), B (dxkp1/duk), J (d(fxkp1)/dxkp1), L (joint state violation penalty matrix)
-            :rtype: tuple of a numpy arrays            
+            :rtype: tuple of a numpy arrays
         )methdoc")
         .def("forward_pass_batch", &sys::System::fpBatch, py::arg("u"), "perform the forward pass in batch form")
         .def("cost_F", &sys::System::cost_F, py::arg("xk"), "Final cost for the state <fxk>")
         .def("cost_F_x", &sys::System::cost_F_x, py::arg("xk"), R"methdoc(
             Gradient of the final cost with respect to x
-            
+
             :param fxk: f(xk)
             :type fxk: numpy array
 
@@ -411,10 +491,10 @@ PYBIND11_MODULE(PyLQR, m) {
             )methdoc")
         .def("get_fx_jac", static_cast<std::tuple<Eigen::VectorXd, Eigen::MatrixXd> (sys::System::*)(Eigen::VectorXd)>(&sys::System::getFxJac), R"methdoc(
             return the current f(x) with the Jacobian with respect to the given state
-            
+
             :param xk: Given state
             :type xk: numpy array
-            
+
             )methdoc",
              py::arg("xk"))
         .def("get_init_state", &sys::System::getInitState, "return initial state at the joint level")
@@ -445,6 +525,89 @@ PYBIND11_MODULE(PyLQR, m) {
 
         )classdoc";
 
+    py::class_<sys::JointSpacePlannerSys, sys::System, std::shared_ptr<sys::JointSpacePlannerSys>>(m_sys, "JointSpacePlannerSys")
+        .def(py::init<const std::shared_ptr<sim::SimulationInterface>&, const std::vector<std::shared_ptr<sys::Keypoint>>&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&,
+                      const Eigen::VectorXd&, const Eigen::VectorXd&, int, int, double>(),
+             py::arg("r"), py::arg("keypoints"), py::arg("RtDiag"), py::arg("qMax"), py::arg("qMin"), py::arg("dqMax"), py::arg("dqMin"), py::arg("horizon"), py::arg("nbDeriv"), py::arg("dt"))
+        .def(py::init<const std::shared_ptr<sim::SimulationInterface>&, const std::vector<std::shared_ptr<sys::Keypoint>>&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&, int,
+                      int, double>(),
+             py::arg("r"), py::arg("keypoints"), py::arg("RtDiag"), py::arg("qMax"), py::arg("qMin"), py::arg("horizon"), py::arg("nbDeriv"), py::arg("dt"))
+        .def(py::init<const std::shared_ptr<sim::SimulationInterface>&, const std::vector<std::shared_ptr<sys::Keypoint>>&, const Eigen::VectorXd&, int, int, double>(), py::arg("r"),
+             py::arg("keypoints"), py::arg("RtDiag"), py::arg("horizon"), py::arg("nbDeriv"), py::arg("dt"))
+        .doc() = R"classdoc(
+            This class inherits from the System class and provide the base system for a Joint space planner system
+
+            :param r: Simulation interface object
+            :type r: SimulationInterface
+
+            :param keypoints: Keypoints that our system will track
+            :type keypoints: list of PosOrnKeypoint object
+
+            :param RtDiag: control penalty for each control signal
+            :type RtDiag: numpy array
+
+            :param qMax: Maximum allowed joint position, optional
+            :type qMax: numpy array
+
+            :param qMin: Minimum allowed joint position, optional
+            :type qMin: numpy array
+
+            :param dqMax: Maximum allowed joint velocity, optional
+            :type dqMax: numpy array
+
+            :param dqMin: Minimum allowed joint velocity, optional
+            :type dqMin: numpy array
+
+            :param horizon: Horizon of the problem
+            :type horizon: int
+
+            :param nbDeriv: Number of derivative of the linear system
+            :type nbDeriv: int (1 or 2)
+
+            :param dt: time step duration
+            :type dt: double
+        )classdoc";
+
+    py::class_<sys::JointSpaceTimePlannerSys, sys::System, std::shared_ptr<sys::JointSpaceTimePlannerSys>>(m_sys, "JointSpaceTimePlannerSys")
+        .def(py::init<const std::shared_ptr<sim::SimulationInterface>&, const std::vector<std::shared_ptr<sys::Keypoint>>&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&,
+                      const Eigen::VectorXd&, const Eigen::VectorXd&, int, int>(),
+             py::arg("r"), py::arg("keypoints"), py::arg("RtDiag"), py::arg("qMax"), py::arg("qMin"), py::arg("dqMax"), py::arg("dqMin"), py::arg("horizon"), py::arg("nbDeriv"))
+        .def(py::init<const std::shared_ptr<sim::SimulationInterface>&, const std::vector<std::shared_ptr<sys::Keypoint>>&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&, int,
+                      int>(),
+             py::arg("r"), py::arg("keypoints"), py::arg("RtDiag"), py::arg("qMax"), py::arg("qMin"), py::arg("horizon"), py::arg("nbDeriv"))
+        .def(py::init<const std::shared_ptr<sim::SimulationInterface>&, const std::vector<std::shared_ptr<sys::Keypoint>>&, const Eigen::VectorXd&, int, int>(), py::arg("r"), py::arg("keypoints"),
+             py::arg("RtDiag"), py::arg("horizon"), py::arg("nbDeriv"))
+        .doc() = R"classdoc(
+            This class inherits from the System class and provide the base system for a joint space planner with time optimization system
+
+            :param r: Simulation interface object
+            :type r: SimulationInterface
+
+            :param keypoints: Keypoints that the system will track
+            :type keypoints: list of SpacetimeKeypoint
+
+            :param RtDiag: control penalty for each control signal
+            :type RtDiag: numpy array
+
+            :param qMax: Maximum allowed joint position, optional
+            :type qMax: numpy array
+
+            :param qMin: Minimum allowed joint position, optional
+            :type qMin: numpy array
+
+            :param dqMax: Maximum allowed joint velocity, optional
+            :type dqMax: numpy array
+
+            :param dqMin: Minimum allowed joint velocity, optional
+            :type dqMin: numpy array
+
+            :param horizon: Horizon of the problem
+            :type horizon: int
+
+            :param nbDeriv: Number of derivative of the linear system
+            :type nbDeriv: int (1 or 2)
+        )classdoc";
+
     py::class_<sys::PosOrnPlannerSys, sys::System, std::shared_ptr<sys::PosOrnPlannerSys>>(m_sys, "PosOrnPlannerSys")
         .def(py::init<const std::shared_ptr<sim::SimulationInterface>&, const std::vector<std::shared_ptr<sys::Keypoint>>&, const Eigen::VectorXd&, const Eigen::VectorXd&, const Eigen::VectorXd&,
                       const Eigen::VectorXd&, const Eigen::VectorXd&, int, int, double>(),
@@ -468,15 +631,15 @@ PYBIND11_MODULE(PyLQR, m) {
 
             :param qMax: Maximum allowed joint position, optional
             :type qMax: numpy array
-            
+
             :param qMin: Minimum allowed joint position, optional
             :type qMin: numpy array
 
             :param dqMax: Maximum allowed joint velocity, optional
             :type dqMax: numpy array
-            
+
             :param dqMin: Minimum allowed joint velocity, optional
-            :type dqMin: numpy array        
+            :type dqMin: numpy array
 
             :param horizon: Horizon of the problem
             :type horizon: int
@@ -504,22 +667,22 @@ PYBIND11_MODULE(PyLQR, m) {
             :type r: SimulationInterface
 
             :param keypoints: Keypoints that the system will track
-            :type keypoints: list of SpacetimeKeypoint 
+            :type keypoints: list of SpacetimeKeypoint
 
             :param RtDiag: control penalty for each control signal
             :type RtDiag: numpy array
 
             :param qMax: Maximum allowed joint position, optional
             :type qMax: numpy array
-            
+
             :param qMin: Minimum allowed joint position, optional
             :type qMin: numpy array
 
             :param dqMax: Maximum allowed joint velocity, optional
             :type dqMax: numpy array
-            
+
             :param dqMin: Minimum allowed joint velocity, optional
-            :type dqMin: numpy array       
+            :type dqMin: numpy array
 
             :param horizon: Horizon of the problem
             :type horizon: int
@@ -542,10 +705,10 @@ PYBIND11_MODULE(PyLQR, m) {
 
         .. autoclass:: AL_ILQR
             :members:
-        
+
         .. autoclass:: BatchILQRCP
             :members:
-        
+
         .. autoclass:: BatchILQR
             :members:
 
@@ -587,7 +750,7 @@ PYBIND11_MODULE(PyLQR, m) {
 
             :param scaling_factor: How the weight of constraints evolve (1->constant)
             :type scaling_factor: double
-            
+
             :param line_search: If true, line search is performed at each iteration.
             :type line_search: bool
 
@@ -627,7 +790,7 @@ PYBIND11_MODULE(PyLQR, m) {
 
             :param early_stop: If true, stop optimization when cost is stagning
             :type early_stop: bool
-            
+
             :param cb: Callback class to notify the user
             :type cb: CallBackMessage and its derivatives
         )metdoc")
@@ -656,7 +819,7 @@ PYBIND11_MODULE(PyLQR, m) {
 
             :param early_stop: If true, stop optimization when cost is stagning
             :type early_stop: bool
-            
+
             :param cb: Callback class to notify the user
             :type cb: CallBackMessage and its derivatives
         )metdoc")
@@ -690,7 +853,7 @@ PYBIND11_MODULE(PyLQR, m) {
 
             :param early_stop: If true, stop optimization when cost is stagning
             :type early_stop: bool
-            
+
             :param cb: Callback class to notify the user
             :type cb: CallBackMessage and its derivatives
         )methdoc")

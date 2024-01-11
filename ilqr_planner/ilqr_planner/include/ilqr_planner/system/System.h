@@ -1,29 +1,8 @@
-/**
-    This package provides a C++ iLQR library that comes with its python bindings.
-    It allows you to solve iLQR optimization problem on any robot as long as you
-    provide an [URDF file](http://wiki.ros.org/urdf/Tutorials) describing the
-    kinematics chain of the robot. For debugging purposes it also provide a 2D
-    planar robots class that you can use. You can also apply a spatial
-    transformation to compute robot task space information in the base frame of
-    your choice (e.g. object frame).
-
-    Copyright (c) 2022 Idiap Research Institute, http://www.idiap.ch/
-    Written by Jeremy Maceiras <jeremy.maceiras@idiap.ch>
-
-    This file is part of ilqr_planner.
-
-    ilqr_planner is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 3 as
-    published by the Free Software Foundation.
-
-    ilqr_planner is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with ilqr_planner. If not, see <http://www.gnu.org/licenses/>.
-*/
+// SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+//
+// SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+//
+// SPDX-License-Identifier: GPL-3.0-only
 
 #pragma once
 
@@ -55,8 +34,9 @@ public:
            const Eigen::VectorXd& RtDiag,
            const Eigen::VectorXd& qMax,
            const Eigen::VectorXd& qMin,
-           int horizon,
-           int nbDeriv);
+           const int& horizon,
+           const int& nbDeriv,
+           const std::vector<std::string>& allowed_kp_tags);
 
     System(const std::shared_ptr<sim::SimulationInterface>& r,
            const std::vector<std::shared_ptr<Keypoint>>& keypoints,
@@ -65,10 +45,16 @@ public:
            const Eigen::VectorXd& qMin,
            const Eigen::VectorXd& dqMax,
            const Eigen::VectorXd& dqMin,
-           int horizon,
-           int nbDeriv);
+           const int& horizon,
+           const int& nbDeriv,
+           const std::vector<std::string>& allowed_kp_tags);
 
-    System(const std::shared_ptr<sim::SimulationInterface>& r, const std::vector<std::shared_ptr<Keypoint>>& keypoints, const Eigen::VectorXd& RtDiag, int horizon, int nbDeriv);
+    System(const std::shared_ptr<sim::SimulationInterface>& r,
+           const std::vector<std::shared_ptr<Keypoint>>& keypoints,
+           const Eigen::VectorXd& RtDiag,
+           const int& horizon,
+           const int& nbDeriv,
+           const std::vector<std::string>& allowed_kp_tags);
 
     virtual ~System() {}
 
@@ -148,18 +134,18 @@ public:
 
     virtual Eigen::VectorXd getMuVector(bool sparse = false);
     virtual Eigen::MatrixXd getQMatrix(bool sparse = false);
-    Eigen::MatrixXd getRt() { return this->R; }
+    Eigen::MatrixXd getRt() { return R; }
 
-    int getNbStateVar() { return this->nbStateVar; }
-    int getNbCtrlVar() { return this->nbCtrlVar; }
-    int getNbTargetVar() { return this->nbTargetVar; }
-    int getNbQVar() { return this->nbQVar; }
-    int getHorizon() { return this->horizon; }
-    int getNbDeriv() { return this->nbDeriv; }
+    int getNbStateVar() { return nb_state_var_; }
+    int getNbCtrlVar() { return nb_ctrl_var_; }
+    int getNbTargetVar() { return nb_target_var_; }
+    int getNbQVar() { return nb_Q_var_; }
+    int getHorizon() { return horizon_; }
+    int getNbDeriv() { return nb_deriv_; }
 
     std::shared_ptr<Keypoint> getKeypoint(int k);
 
-    void checkKeypoints(const std::string& expected_tag);
+    void checkKeypoints();
 
     /**
      * Return the initial state of the system
@@ -183,27 +169,28 @@ protected:
      */
     virtual void init();
 
-    Eigen::VectorXd x0;
-    Eigen::VectorXd f_x0;
+    Eigen::VectorXd x0_;
+    Eigen::VectorXd f_x0_;
 
-    int nbStateVar;
-    int nbTargetVar;
-    int nbCtrlVar;
-    int nbQVar;
-    int horizon;
-    int nbDeriv;
+    int nb_state_var_;
+    int nb_target_var_;
+    int nb_ctrl_var_;
+    int nb_Q_var_;
+    int horizon_;
+    int nb_deriv_;
 
-    bool limitsSet;
-    Eigen::VectorXd state_max, state_min;
-    Eigen::VectorXi joint_limits_weight;
+    bool limits_set_;
+    Eigen::VectorXd state_max_, state_min_;
+    Eigen::VectorXi joint_limits_weight_;
 
-    double penalty;  // Penalty in case of kinematics constraints violation
+    double penalty_;  // Penalty in case of kinematics constraints violation
 
     Eigen::MatrixXd R;
-    std::map<int, std::shared_ptr<Keypoint>> keypoints_map;
+    std::map<int, std::shared_ptr<Keypoint>> keypoints_map_;
 
 private:
     std::pair<Eigen::MatrixXd, Eigen::VectorXd> inspectJointLimit(Eigen::VectorXd xk);
+    const std::vector<std::string> EXPECTED_KP_TAGS_;
 };
 }  // namespace sys
 }  // namespace ilqr_planner

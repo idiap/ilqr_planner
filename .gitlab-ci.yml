@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: 2023 Idiap Research Institute <contact@idiap.ch>
+#
+# SPDX-FileContributor: Jeremy Maceiras  <jeremy.maceiras@idiap.ch>
+#
+# SPDX-License-Identifier: GPL-3.0-only
+
 # This file is a template, and might need editing before it works on your project.
 # To contribute improvements to CI/CD templates, please follow the Development guide at:
 # https://docs.gitlab.com/ee/development/cicd/templates.html
@@ -16,7 +22,7 @@
 image: python:3.8-alpine
 
 variables:
-  GIT_SUBMODULE_STRATEGY: recursive 
+  GIT_SUBMODULE_STRATEGY: recursive
   INSTALL_DIR: $CI_PROJECT_DIR/install
 
 stages:          # List of stages for jobs, and their order of execution
@@ -32,8 +38,8 @@ build-job:       # This job runs in the build stage, which runs first.
 
     - mkdir temp && cd temp
     - git clone https://github.com/orocos/orocos_kinematics_dynamics.git
-    - curl https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz -o eigen-3.3.7.tar.gz 
-    
+    - curl https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz -o eigen-3.3.7.tar.gz
+
     - tar xfz eigen-3.3.7.tar.gz
     - cd eigen-3.3.7/
     - mkdir build && cd build
