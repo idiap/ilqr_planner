@@ -56,7 +56,7 @@ All the computations use [Eigen3](https://eigen.tuxfamily.org/index.php?title=Ma
 
 For the kinematics model of the robot, we use [KDL](https://www.orocos.org/kdl.html)
 
-To load the URDF file and transform it into a KDL Object we use [TinyURDFParser](https://gitlab.idiap.ch/jmaceiras/tinyurdfparser), an URDF parser based on [TinyXML2](https://github.com/leethomason/tinyxml2) that does not need ROS.
+To load the URDF file and transform it into a KDL Object we use [TinyURDFParser](https://github.com/idiap/tinyurdfparser), an URDF parser based on [TinyXML2](https://github.com/leethomason/tinyxml2) that does not need ROS.
 
 Python bindings are build with the help of [pybind11](https://github.com/pybind/pybind11).
 
