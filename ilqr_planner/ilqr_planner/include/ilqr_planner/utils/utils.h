@@ -136,7 +136,7 @@ inline std::array<double, s> eigenVectorToStdArray(const Eigen::VectorXd& vec) {
  */
 template <size_t s>
 std::array<double, s> eigenMatrixToStdArray(const Eigen::MatrixXd& mat) {
-    Eigen::VectorXd vec(Eigen::Map<Eigen::VectorXd>(mat.data(), mat.cols() * mat.rows()));
+    Eigen::VectorXd vec(Eigen::Map<Eigen::VectorXd>(const_cast<double*>(mat.data()), mat.cols() * mat.rows()));
     std::array<double, s> arr{};
     Eigen::VectorXd::Map(&arr[0], s) = vec;
     return arr;
