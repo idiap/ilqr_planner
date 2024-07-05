@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: ilqr_planner
+Upstream-Contact: <contact@idiap.ch>
+Source: www.idiap.ch
+
+Files: .cppcheck-suppressions
+Copyright: Copyright © 2023 Idiap Research Institute <contact@idiap.ch>
+License: GPL-3.0-only
