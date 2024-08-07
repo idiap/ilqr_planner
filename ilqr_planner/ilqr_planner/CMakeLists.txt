@@ -37,10 +37,6 @@ target_include_directories(${PROJECT_NAME}
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/tinyurdfparser/include>
 )
 
-target_include_directories(${PROJECT_NAME}
-	SYSTEM PRIVATE
-)
-
 target_link_libraries(${PROJECT_NAME}
 	PUBLIC
 		${orocos_kdl_LIBRARIES}
@@ -52,7 +48,7 @@ install(TARGETS ${PROJECT_NAME} EXPORT ${CMAKE_PROJECT_NAME}-config-targets
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	RUNTIME DESTINATION bin
-	INCLUDES DESTINATION ${${PROJECT_NAME}_PREFIX_INCLUDE}/${PROJECT_NAME}
+	INCLUDES DESTINATION include
 )
 
 file(GLOB_RECURSE SIM_HEADERS "${CMAKE_CURRENT_LIST_DIR}/include/ilqr_planner/sim/*.h")
@@ -60,7 +56,7 @@ install(
 	FILES
 		${SIM_HEADERS}
 	DESTINATION
-		"${${PROJECT_NAME}_PREFIX_INCLUDE}/${PROJECT_NAME}/ilqr_planner/sim"
+		"include/${PROJECT_NAME}/sim"
 	COMPONENT
 		Devel
 )
@@ -70,7 +66,7 @@ install(
 	FILES
 		${SOLVER_HEADERS}
 	DESTINATION
-		"${${PROJECT_NAME}_PREFIX_INCLUDE}/${PROJECT_NAME}/ilqr_planner/solver"
+		"include/${PROJECT_NAME}/solver"
 	COMPONENT
 		Devel
 )
@@ -81,7 +77,7 @@ install(
 	FILES
 		${SYSTEM_HEADERS}
 	DESTINATION
-		"${${PROJECT_NAME}_PREFIX_INCLUDE}/${PROJECT_NAME}/ilqr_planner/system"
+		"include/${PROJECT_NAME}/system"
 	COMPONENT
 		Devel
 )
@@ -91,7 +87,7 @@ install(
 	FILES
 		${UTILS_HEADERS}
 	DESTINATION
-		"${${PROJECT_NAME}_PREFIX_INCLUDE}/${PROJECT_NAME}/ilqr_planner/utils"
+		"include/${PROJECT_NAME}/utils"
 	COMPONENT
 		Devel
 )
