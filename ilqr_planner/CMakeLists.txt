@@ -25,14 +25,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-
-set(${PROJECT_NAME}_PREFIX_PACKAGE share/${PROJECT_NAME}/cmake)
-set(${PROJECT_NAME}_PREFIX_INCLUDE include/${PROJECT_NAME})
-
-set(DEBUG_MODE true)
 
 add_compile_options(
     "-Wall"
@@ -59,7 +52,7 @@ export(EXPORT ${PROJECT_NAME}-config-targets
 install(EXPORT ${PROJECT_NAME}-config-targets
   FILE ${PROJECT_NAME}-config-targets.cmake
   NAMESPACE ${PROJECT_NAME}::
-  DESTINATION ${${PROJECT_NAME}_PREFIX_PACKAGE}
+  DESTINATION lib/cmake/${PROJECT_NAME}
 )
 
 include(CMakePackageConfigHelpers)
@@ -78,7 +71,7 @@ install(
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-packages.cmake"
   DESTINATION
-    ${${PROJECT_NAME}_PREFIX_PACKAGE}
+    lib/cmake/${PROJECT_NAME}
   COMPONENT
     Devel
 )

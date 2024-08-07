@@ -18,3 +18,6 @@ find_dependency(orocos_kdl REQUIRED)
 
 # Add the targets file
 include("${CMAKE_CURRENT_LIST_DIR}/ilqr_planner-config-targets.cmake")
+
+set(ilqr_planner_LIBRARIES ilqr_planner::ilqr_planner)
+get_target_property(ilqr_planner_INCLUDE_DIRS ilqr_planner::ilqr_planner INTERFACE_INCLUDE_DIRECTORIES)
