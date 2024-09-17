@@ -21,4 +21,4 @@ sudo make install
 cd ../pylqr_planner
 cmake ../../pylqr_planner -DCMAKE_BUILD_TYPE=Release
 make -j $num_thread
-sudo make install
+make install
